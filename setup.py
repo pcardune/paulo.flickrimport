@@ -6,7 +6,7 @@ def read(*rnames):
 
 setup(
     name='paulo.flickrimport',
-    version = '0.0.1dev',
+    version = '0.0.1',
     author='Paul Carduner',
     description='Flickr Import Script',
     long_description='Script for downloading photos from flickr and uploading them to divvyshot',
@@ -19,6 +19,7 @@ setup(
         'flickrapi',
         'anyjson',
         'oauth',
+        'httplib2',
         ],
     include_package_data = True,
     zip_safe = False,

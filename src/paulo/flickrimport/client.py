@@ -1,16 +1,16 @@
 import os
-import sys
 import string
 import random
 import urllib
-import httplib
 import mimetypes
 import base64
 import urlparse
 import getpass
+import httplib2
 from anyjson import deserialize
 
 DEFAULT_ENDPOINT = 'http://redux.divvyshot.com/api/v2/json/'
+DEFAULT_ENDPOINT = 'http://localhost:8080/api/v2/json/'
 
 class BasicAuth(object):
 
@@ -18,25 +18,26 @@ class BasicAuth(object):
         """Builds class. Creates authentication and connection objects."""
         auth = "Basic %s" % base64.encodestring("%s:%s" % (username, password)).strip()
         self.authentication = {"Authorization": auth}
-        self.connection = httplib.HTTPConnection(host, port)
+        self.base = 'http://'+host
+        if port:
+            self.base += ':'+str(port)
+
+        self.client = httplib2.Http()
+        self.client.add_credentials(username, password)
 
     def get(self, path):
         """Generates and executes authenticated GET request."""
-        try:
-            self.connection.request("GET", path, urllib.urlencode({}), self.authentication)
-            return self.connection.getresponse()
-        except:
-            print >> sys.stderr, "Get Request: Failed"
+        resp, content = self.client.request(self.base+path, "GET", headers=self.authentication)
+        return content
 
     def _send(self, method, path, data):
         """Generates and executes authenticated POST request."""
-        headers = {'Content-type':'application/x-www-form-urlencoded'}
+        headers = {'Content-Type':'application/x-www-form-urlencoded'}
         headers.update(self.authentication)
-        try:
-            self.connection.request(method, path, urllib.urlencode(data), headers)
-            return self.connection.getresponse()
-        except:
-            print >> sys.stderr, "Post Request: Failed"
+        resp, content = self.client.request(self.base+path, method,
+                                            body=urllib.urlencode(data),
+                                            headers=headers)
+        return content
 
     def put(self, path, data):
         return self._send("PUT", path, data)
@@ -62,13 +63,11 @@ class BasicAuth(object):
         lines.extend(('--%s--' % boundary, ''))
         body = '\r\n'.join(lines)
         headers = {'Content-Type':'multipart/form-data; boundary=' + boundary,
-                   'Content-Length':len(body)}
+                   'Content-Length':str(len(body))}
         headers.update(self.authentication)
-        try:
-            self.connection.request("POST", path, body, headers)
-            return self.connection.getresponse()
-        except:
-            print >> sys.stderr, "Post Request: Failed"
+        resp, content = self.client.request(self.base+path, "POST",
+                                            body=body, headers=headers)
+        return content
 
 
 class DivvyshotClient(object):
@@ -83,12 +82,12 @@ class DivvyshotClient(object):
 
     def create_event(self, name='', description=''):
         return deserialize(self.client.post('/api/v2/json/event/',
-                                            {'name':name, 'description':description}).read())
+                                            {'name':name, 'description':description}))
 
     def create_photo(self, event, filename):
         event_path = '/api/v2/json/event/%s/photo/' % event
-        return deserialize(self.client.post_file(event_path, {}, {'image':open(filename, 'rb')}).read())
+        return deserialize(self.client.post_file(event_path, {}, {'image':open(filename, 'rb')}))
 
     def update_photo(self, photo, name=''):
         photo_path = '/api/v2/json/photo/%s/' % photo
-        return self.client.put(photo_path, {'name':name})
+        return deserialize(self.client.put(photo_path, {'name':name}))

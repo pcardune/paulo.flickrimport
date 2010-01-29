@@ -30,6 +30,7 @@ class Importer(object):
 
         response = self.flickr.photosets_getList(user_id=nsid)
         photosets = []
+        photo_ids = []
         for ps in response[0]:
             photoset = {'id': ps.get('id'),
                         'title': ps[0].text,
@@ -40,9 +41,24 @@ class Importer(object):
             for pxml in photos_response[0]:
                 photo = {'id':pxml.get('id'),
                          'title':pxml.get('title')}
-                sizes_response = self.flickr.photos_getSizes(photo_id=photo['id'])
-                photo['url'] = sizes_response[0][-1].get('source')
                 photoset['photos'].append(photo)
+                photo_ids.append(photo['id'])
+            print photoset['title'],'-',len(photoset['photos']),'photos'
+            photosets.append(photoset)
+
+        # get photos not in photosets
+        photos_response = self.flickr.photos_search(user_id=nsid, per_page=500)
+        photoset = {'id':'stream',
+                    'title':'Flickr Stream',
+                    'description':'Photos from my flickr stream',
+                    'photos':[]}
+        for pxml in response[0]:
+            photo = {'id':pxml.get('id'),
+                     'title':pxml.get('title')}
+            if photo['id'] not in photo_ids:
+                photoset['photos'].append(photo)
+                photo_ids.append(photo['id'])
+        if photoset['photos']:
             print photoset['title'],'-',len(photoset['photos']),'photos'
             photosets.append(photoset)
 
@@ -75,11 +91,19 @@ class Importer(object):
                         default = None
 
                 f = open(filename, 'w')
-                print "Downloading", photo['title'], 'from', photo['url']
-                remote = urllib2.urlopen(photo['url'])
-                f.write(remote.read())
-                f.close()
-                remote.close()
+                if not photo.get('url'):
+                    try:
+                        sizes_response = self.flickr.photos_getSizes(photo_id=photo['id'])
+                    except:
+                        print "Failed to download photo:", photo['id'], '... sorry!'
+                    else:
+                        photo['url'] = sizes_response[0][-1].get('source')
+                if photo.get('url'):
+                    print "Downloading", photo['title'], 'from', photo['url']
+                    remote = urllib2.urlopen(photo['url'])
+                    f.write(remote.read())
+                    f.close()
+                    remote.close()
 
     def upload_images(self, photosets, directory):
         client = DivvyshotClient()
@@ -90,6 +114,9 @@ class Importer(object):
             for photo in photoset['photos']:
                 print "Uploading", photo['title']
                 filename = os.path.join(directory, photoset['id']+' - '+photoset['title'], photo['id']+'.jpg')
+                if not os.path.exists(filename):
+                    print "Looks like photo",photo['id'],'did not get downloaded.'
+                    continue
                 photo_data = client.create_photo(event_data['url_slug'], filename)
                 photo_data = client.update_photo(photo_data['url_slug'], name=photo['title'])
                 print "Finished uploading", photo_data['name']
