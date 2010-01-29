@@ -10,7 +10,7 @@ import httplib2
 from anyjson import deserialize
 
 DEFAULT_ENDPOINT = 'http://redux.divvyshot.com/api/v2/json/'
-DEFAULT_ENDPOINT = 'http://localhost:8080/api/v2/json/'
+#DEFAULT_ENDPOINT = 'http://localhost:8080/api/v2/json/'
 
 class BasicAuth(object):
 
