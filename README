@@ -1,1 +1,10 @@
 A script to download your photos from flickr and upload them to divvyshot.
+
+Install it:
+
+  $ easy_install http://cloud.github.com/downloads/pcardune/paulo.flickrimport/paulo.flickrimport-0.0.1.tar.gz
+
+Run it:
+
+  $ flickrtodivvy
+

@@ -8,6 +8,8 @@ setup(
     name='paulo.flickrimport',
     version = '0.0.1',
     author='Paul Carduner',
+    author_email='paul@carduner.net',
+    url='http://github.com/pcardune/paulo.flickrimport',
     description='Flickr Import Script',
     long_description='Script for downloading photos from flickr and uploading them to divvyshot',
     license = "proprietary",
